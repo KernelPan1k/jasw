@@ -122,7 +122,7 @@ def run():
     parser.add_argument("-n",
                         dest="elf_name",
                         type=str,
-                        default="rv.exe",
+                        default="rv.elf",
                         help="name of output elf"
                         )
 
