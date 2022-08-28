@@ -14,12 +14,12 @@ def make_random_str():
 
 def xor_shellcode(data, key):
     key_len = len(key)
-    keyAsInt = map(ord, key)
+    keyAsInt = list(map(ord, key))
     s = bytes(bytearray((
         (data[i] ^ keyAsInt[i % key_len]) for i in range(0, len(data))
     )))
     shellcode = "\\x"
-    shellcode += "\\x".join(format(ord(b), '02x') for b in s)
+    shellcode += "\\x".join(format(b if isinstance(b, int) else ord(b), '02x') for b in s)
     return shellcode
 
 
