@@ -1,0 +1,4 @@
+art==5.8
+emoji==2.2.0
+psutil==5.9.4
+termcolor==2.2.0
