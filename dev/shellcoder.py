@@ -91,7 +91,6 @@ class AllocateAndFill100M0Memory(Bypass):
 
     def __init__(self):
         super().__init__()
-        self.var_name = ShellCoder.make_random_str()
 
     @staticmethod
     def menu():
@@ -114,7 +113,50 @@ int {0}() {{
     
     return 1;
 }}
-        '''.format(self.func_name, self.var_name)
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+        )
+
+    def get_call(self):
+        return '''
+        {func_name}() == 1
+        '''.format(func_name=self.func_name)
+
+
+class HundredMillionIncrements(Bypass):
+    var_name = None
+
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Hundred million increments"
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    int {1} = 0;
+    int {2} = 0;
+    
+    for({2} = 0; {2} < 100000000; {2}++)
+    {{
+      {1}++;
+    }}
+    
+    if({1} == 100000000){{
+        return 1;
+    }}
+    
+    return 0;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str()
+        )
 
     def get_call(self):
         return '''
@@ -265,7 +307,11 @@ class Windows(ShellCoder):
     exe_name = None
     payload = None
     injection_technique = None
-    available_bypass = [VerifyInputName, AllocateAndFill100M0Memory]
+    available_bypass = [
+        VerifyInputName,
+        AllocateAndFill100M0Memory,
+        HundredMillionIncrements,
+    ]
 
     def __init__(self):
         self.injection_technique = self.ask_for_technique()
