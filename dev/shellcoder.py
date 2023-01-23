@@ -386,11 +386,11 @@ class ShellCoder:
     def ask_arch():
         selected_arch = None
 
-        print("What type of architecture for output binary?")
+        cprint("What type of architecture do you want use for output binary?", "white", "on_blue")
 
         while selected_arch is None:
-            print(" - [1] x64")
-            print(" - [2] x86")
+            print(emoji.emojize(":right_arrow:") + " [1] x64")
+            print(emoji.emojize(":right_arrow:") + " [2] x86")
 
             selected_arch = input(" ? - ")
 
@@ -415,10 +415,10 @@ class ShellCoder:
                     ips.append(addr.address)
 
         while selected_answer is None:
-            print("What LHOST do you want ?")
+            cprint("What LHOST do you want ?", "white", "on_blue")
 
             for i, ip_address in enumerate(ips):
-                print("- [%s] %s" % ((i + 1), ip_address))
+                print(emoji.emojize(":right_arrow:") + " [%s] %s" % ((i + 1), ip_address))
 
             try:
                 selected_answer = input(" ?")
@@ -436,7 +436,7 @@ class ShellCoder:
     def ask_lport():
         selected_port = None
         while selected_port is None:
-            print("Which port use?")
+            cprint("What LPORT do you want?", "white", "on_blue")
             selected_port = input(" ?")
             try:
                 selected_port = int(selected_port)
@@ -449,12 +449,12 @@ class ShellCoder:
     def ask_for_exit_func():
         selected_answer = None
 
-        print("What kind of EXIT Function do you want to use?")
+        cprint("What kind of EXIT Function do you want to use?", "white", "on_blue")
 
         while selected_answer is None:
-            print(" - [1] process")
-            print(" - [2] thread")
-            print(" - [3] SEH")
+            print(emoji.emojize(":right_arrow:") + " [1] process")
+            print(emoji.emojize(":right_arrow:") + " [2] thread")
+            print(emoji.emojize(":right_arrow:") + " [3] SEH")
 
             selected_answer = input(" ? - ")
 
@@ -475,14 +475,14 @@ class ShellCoder:
     @staticmethod
     def ask_out_path():
         selected_answer = None
-        print("Or save the result binary?")
+        cprint("Where do you want save binary and scripts? (path must exists)", "white", "on_blue")
 
         while selected_answer is None:
-            selected_answer = input(" ? -")
+            selected_answer = input(" ? ")
             is_exist = os.path.exists(selected_answer)
 
             if is_exist is False:
-                print("Out pas does not exist")
+                cprint("Path does not exist", "white", "on_red")
                 selected_answer = None
 
         return selected_answer
@@ -636,11 +636,11 @@ if ({bypass_calls}) {{
             'windows/shell/reverse_tcp',
         ]
 
-        print("What kind of payload do you want to use?")
+        cprint("What kind of payload do you want use?", "white", "on_blue")
 
         while selected_answer is None:
             for i, payload in enumerate(payloads):
-                print("- [%s] %s" % ((i + 1), payload))
+                print(emoji.emojize(":right_arrow:") + " [%s] %s" % ((i + 1), payload))
 
             try:
                 selected_answer = input(" ?")
@@ -659,12 +659,11 @@ if ({bypass_calls}) {{
         selected_answer = None
 
         while selected_answer is None:
-            print("What technique do you want user")
+            cprint(" What injection technique do you want use?", "white", "on_blue")
+            print(emoji.emojize(":right_arrow:") + " [1] - shellcode runner")
+            print(emoji.emojize(":right_arrow:") + " [2] - process injection")
 
-            print(" [1] - shellcode runner")
-            print(" [2] - process injection")
-
-            selected_answer = input(" ? - ")
+            selected_answer = input(" ? ")
 
             if selected_answer not in ("1", "2"):
                 selected_answer = None
@@ -676,10 +675,10 @@ if ({bypass_calls}) {{
         select_bypass = []
 
         while select_answer is None:
-            print("Choose how bypass AV (value separate by comma (eg: 1,3,4")
+            cprint("Choose one or more anti-virus evasion techniques  (value separate by comma (eg: 1,3,4))", "white", "on_blue")
 
             for i, bypass in enumerate(self.available_bypass):
-                print("[%s] %s" % ((i + 1), bypass.menu()))
+                print(emoji.emojize(":right_arrow:") + " [%s] %s" % ((i + 1), bypass.menu()))
 
             select_answer = input('?')
             try:
@@ -758,10 +757,10 @@ class Linux:
 if '__main__' == __name__:
     intro()
     print()
-    cprint("What kind of target is it?", "blue", "on_white")
+    cprint(" What kind of target is it?", "white", "on_blue")
     print()
-    print(" - [1] Windows ")
-    print(" - [2] Linux ")
+    print(emoji.emojize(":right_arrow:") + " [1] Windows ")
+    print(emoji.emojize(":right_arrow:") + " [2] Linux ")
     target = input(" ? ")
     if target == '1':
         win = Windows()
