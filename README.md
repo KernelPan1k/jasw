@@ -649,7 +649,7 @@ int main(int argc, char **argv) {
 }
 ```
 
-![Step14](doc/step14.png "Check process memory")
+![Step14](doc/step14.png "Time distortion")
 
 
 Test 15 (Mutex)

