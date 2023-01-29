@@ -752,7 +752,6 @@ int main(int argc, char **argv) {{
         payloads = [
             'windows/x64/meterpreter/reverse_https',
             'windows/x64/meterpreter/reverse_tcp',
-            'windows/x64/shell/reverse_https',
             'windows/x64/shell/reverse_tcp',
             'windows/meterpreter/reverse_https',
             'windows/meterpreter/reverse_tcp',
