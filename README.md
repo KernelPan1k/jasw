@@ -19,7 +19,8 @@ Installation
 ============
 
 ```bash
-apt install mingw-w64 g++-mingw-w64-i686-win32 python3
+apt install mingw-w64 g++-mingw-w64-i686-win32 python3 python3-pip
+pip install -r requirements.txt
 ```
 
 Usage
