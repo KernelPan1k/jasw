@@ -11,6 +11,7 @@ laws. I take no responsibility and am not liable for any misuse or damage caused
 - Thanks to https://github.com/EnginDemirbilek/Flip
 - Thanks to https://github.com/9emin1/charlotte
 - Thanks to https://github.com/Arno0x/ShellcodeWrapper
+- Thanks to https://github.com/icyguider/Shhhloader
 
 The purpose of this document is to verify the ability of consumer antivirus software to detect a binary incorporating a
 meterpreter payload. To do so, I will try different methods described in the ivi PDF (found on wikileaks). Some of these
