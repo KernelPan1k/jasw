@@ -347,12 +347,12 @@ int {0}() {{
     Sleep(10000);
     {2} = timeGetTime();
     
-    if({2} > ({1} + 9990))
+    if({2} < ({1} + 9990))
     {{
-        return 1;
+        return 0;
     }}
     
-    return 0;
+    return 1;
 }}
         '''.format(
             self.func_name,
