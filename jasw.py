@@ -7,7 +7,7 @@ import subprocess
 
 import emoji
 import psutil
-from termcolor import cprint, colored
+from termcolor import cprint
 
 
 def intro():
@@ -869,11 +869,12 @@ int main(int argc, char **argv) {{
             cprint(" What injection technique do you want use?", "white", "on_blue")
             print(emoji.emojize(":right_arrow:") + " [1] - shellcode runner")
             print(emoji.emojize(":right_arrow:") + " [2] - process injection")
-            print(emoji.emojize(":right_arrow:") + " [2] - process hollowing")
+            # print(emoji.emojize(":right_arrow:") + " [2] - process hollowing")
 
             selected_answer = input(" ? ")
 
-            if selected_answer not in ("1", "2", "3"):
+            # if selected_answer not in ("1", "2", "3"):
+            if selected_answer not in ("1", "2"):
                 selected_answer = None
 
         return selected_answer
@@ -968,21 +969,18 @@ int main(int argc, char **argv) {{
         os.system(command)
 
 
-class Linux:
-    pass
-
-
 if '__main__' == __name__:
     intro()
     print()
-    cprint(" What kind of target is it?", "white", "on_blue")
-    print()
-    print(emoji.emojize(":right_arrow:") + " [1] Windows ")
-    print(emoji.emojize(":right_arrow:") + " [2] Linux ")
-    target = input(" ? ")
-    if target == '1':
-        win = Windows()
-    elif target == '2':
-        Linux()
-    else:
-        raise Exception("Unknown target")
+    win = Windows()
+   # cprint(" What kind of target is it?", "white", "on_blue")
+   # print()
+   # print(emoji.emojize(":right_arrow:") + " [1] Windows ")
+   # print(emoji.emojize(":right_arrow:") + " [2] Linux ")
+   # target = input(" ? ")
+   # if target == '1':
+   #     win = Windows()
+    # elif target == '2':
+    # Linux()
+    #else:
+     #   raise Exception("Unknown target")
