@@ -1,4 +1,4 @@
-ShellCoder
+JASW
 =======
 
 **All information and software available on this site is intended for educational purposes only. Use them at your own
@@ -12,6 +12,23 @@ laws. I take no responsibility and am not liable for any misuse or damage caused
 - Thanks to https://github.com/9emin1/charlotte
 - Thanks to https://github.com/Arno0x/ShellcodeWrapper
 - Thanks to https://github.com/icyguider/Shhhloader
+
+
+
+Installation
+============
+
+```bash
+apt install mingw-w64 g++-mingw-w64-i686-win32 python3
+```
+
+Usage
+=====
+
+
+```bash
+python3 jasw.py
+```
 
 The purpose of this document is to verify the ability of consumer antivirus software to detect a binary incorporating a
 meterpreter payload. To do so, I will try different methods described in the ivi PDF (found on wikileaks). Some of these
@@ -741,11 +758,9 @@ int main(int argc, char **argv) {
 ![Step16](doc/step16_1.png "NUMA && check binary name")
 
 
+TODO
+====
 
-
-Installation
-============
-
-```bash
-apt install mingw-w64 g++-mingw-w64-i686-win32 python3
-```
+- Add some injection techniques like process hollowing
+- Add some bypass
+- Add Linux scripts
